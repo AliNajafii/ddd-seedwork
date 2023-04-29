@@ -9,6 +9,7 @@ class LoggingTypes(Enum):
     API_BASED = 0
     FILE_BASED = 1
     DB_BASED = 2
+    CONSOLE_BASED = 3
 
 @dataclass
 class LogConfig:
