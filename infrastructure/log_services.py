@@ -7,6 +7,7 @@ from .exceptions import InfrastructureException
 import logging
 import copy
 import sys
+import abc
 from enum import Enum
 
 class LoggingType(Enum):
@@ -66,6 +67,30 @@ class LogBackend(InfrastructureService):
         self.check_config()
         return self._create_logger()
 
+    @abc.abstractmethod
+    def log(self, message, level, extra=None, exec_info=None):
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def info(self, message, extra=None, exec_info=None):
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def debug(self, message, extra=None, exec_info=None):
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def warning(self, message, extra=None, exec_info=None):
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def error(self, message, extra=None, exec_info=None):
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def critical(self, message, extra=None, exec_info=None):
+        raise NotImplementedError()
+
 
 class LogService(InfrastructureService):
     """
@@ -103,32 +128,6 @@ class LogService(InfrastructureService):
         if not isinstance(self.config,LogConfig):
             raise InfrastructureException(
                 f'logger config should be instance of LogConfig class not {self.config.__class__}')
-
-    @abc.abstractmethod
-    def log(self,message,level,extra=None,exec_info=None):
-        raise NotImplementedError()
-
-    @abc.abstractmethod
-    def info(self,message,extra=None,exec_info=None):
-        raise NotImplementedError()
-
-    @abc.abstractmethod
-    def debug(self,message,extra=None,exec_info=None):
-        raise NotImplementedError()
-
-    @abc.abstractmethod
-    def warning(self,message,extra=None,exec_info=None):
-        raise NotImplementedError()
-
-    @abc.abstractmethod
-    def error(self,message,extra=None,exec_info=None):
-        raise NotImplementedError()
-
-    @abc.abstractmethod
-    def critical(self,message,extra=None,exec_info=None):
-        raise NotImplementedError()
-
-
 
     @classmethod
     def _do_log(
