@@ -87,7 +87,7 @@ class LogService(InfrastructureService):
 
         #cheking
         self._check_params()
-        
+
         # Create the logger
         self._create_logger()
 
@@ -192,7 +192,7 @@ class LogService(InfrastructureService):
         """
         Convenience method to log the response of an api request.
         """
-       raise NotImplementedError()
+        raise NotImplementedError()
 
     async def start(self):
         pass
