@@ -1,3 +1,5 @@
+import abc
+
 from .services import InfrastructureService
 from pydantic.dataclasses import dataclass
 import inspect
@@ -101,6 +103,32 @@ class LogService(InfrastructureService):
         if not isinstance(self.config,LogConfig):
             raise InfrastructureException(
                 f'logger config should be instance of LogConfig class not {self.config.__class__}')
+
+    @abc.abstractmethod
+    def log(self,message,level,extra=None,exec_info=None):
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def info(self,message,extra=None,exec_info=None):
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def debug(self,message,extra=None,exec_info=None):
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def warning(self,message,extra=None,exec_info=None):
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def error(self,message,extra=None,exec_info=None):
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def critical(self,message,extra=None,exec_info=None):
+        raise NotImplementedError()
+
+
 
     @classmethod
     def _do_log(
