@@ -1,11 +1,13 @@
 from .services import InfrastructureService
 from pydantic.dataclasses import dataclass
+import inspect
+from .exceptions import InfrastructureException
 import logging
 import copy
 import sys
 from enum import Enum
 
-class LoggingTypes(Enum):
+class LoggingType(Enum):
     API_BASED = 0
     FILE_BASED = 1
     DB_BASED = 2
@@ -18,7 +20,7 @@ class LogConfig:
     """
 
     def __init__(self,
-                 type: LoggingTypes = None,
+                 type: LoggingType = None,
                  name:str = '',
                  **params
                  ):
@@ -36,23 +38,44 @@ class LogConfig:
         :return:
         """
 
+class LogBackend(InfrastructureService):
+    """
+    it is the back-end and implementation of log service
+    for ex : ap based service or console based and so on.
+    """
+
+    async def start(self):
+        pass
+
+    async def stop(self):
+        pass
+
+    def __init__(self,config:LogConfig):
+        self.config = config
+        super(LogBackend, self).__init__()
+
+    def check_config(self):
+        raise NotImplementedError()
+
+    def _create_logger(self):
+        raise NotImplementedError()
+
+    def get_logger(self) -> "LogBackend":
+        self.check_config()
+        return self._create_logger()
 
 
 class LogService(InfrastructureService):
     """
     A log service for logging.
-    third_party_logs_settings should be like this:
-    {
-    "modules" : ['azure','aiokafka']
-    "level" : 'warning'
-    }
-    it will set those loggers to warning.
+    it is an Abstract class wich represents
+    a logging service conceptual functionalities
     """
 
     def __init__(
         self,
         config : LogConfig,
-        third_party_logs_settings : dict = None,
+        log_backend : LogBackend,
         enabled=True,
     ):
         super().__init__(log_service="dummy")
@@ -60,17 +83,24 @@ class LogService(InfrastructureService):
         self.config = config
         self.enabled = enabled
         self.logger = None
+        self.log_backend = log_backend
 
-        self.third_parties = third_party_logs_settings
-        self._check_config()
+        #cheking
+        self._check_params()
+        
         # Create the logger
-        self._set_modules_logger_levels()
         self._create_logger()
 
+    def _check_params(self):
+        if not inspect.isclass(self.log_backend):
+            raise InfrastructureException(f"log backend should be a class not object")
 
-    def _check_config(self):
-        pass
-
+        if not isinstance(self.log_backend,LogBackend):
+            raise InfrastructureException(
+                f"log backend should be LogBackend class not {self.log_backend}")
+        if not isinstance(self.config,LogConfig):
+            raise InfrastructureException(
+                f'logger config should be instance of LogConfig class not {self.config.__class__}')
 
     @classmethod
     def _do_log(
@@ -99,24 +129,6 @@ class LogService(InfrastructureService):
             exc_info=exc_info,
         )
 
-    def _set_modules_logger_levels(self):
-        """
-        Sets log level of used modules.
-        Effectively remove/add unwanted/wanted logs of third-party packages
-        from/to console output.
-        """
-        lvl = self.third_parties['level']
-        for modl in self.third_parties['modules']:
-            if lvl.lower() == 'warning':
-                logging.getLogger(modl).setLevel(logging.WARNING)
-            elif lvl.lower() == 'info' :
-                logging.getLogger(modl).setLevel(logging.INFO)
-
-            elif lvl.lower() == 'debug' :
-                logging.getLogger(modl).setLevel(logging.DEBUG)
-
-            elif lvl.lower() == 'error' :
-                logging.getLogger(modl).setLevel(logging.ERROR)
 
     def info(self, message, extra=None, exc_info=False):
         """
@@ -174,55 +186,13 @@ class LogService(InfrastructureService):
         """
         Convenience method to log the request to an api.
         """
-        if self.enabled:
-
-            params = copy.deepcopy(params)
-
-            if 'token' in params:
-                params['token'] = "(hidden)"
-
-            if 'password' in params:
-                params['password'] = "(hidden)"
-
-            self.debug(
-                message,
-                extra={
-                    'method': method,
-                    'url': url,
-                    'params': params,
-                }
-            )
+        raise NotImplementedError()
 
     async def log_response(self, message, method, url, params, response):
         """
         Convenience method to log the response of an api request.
         """
-        if self.enabled:
-            content = response.content
-            params = copy.deepcopy(params)
-
-            if response.headers.get('content-type') == 'application/json':
-                content = json.loads(await response.content())
-            else:
-                content = await response.content()
-
-            if 'token' in params:
-                params['token'] = "(hidden)"
-
-            if 'password' in params:
-                params['password'] = "(hidden)"
-
-            self.debug(
-                message,
-                extra={
-                    'method': method,
-                    'url': url,
-                    'params': params,
-                    'status_code': response.status_code,
-                    'content_type': response.headers.get('content-type'),
-                    'response': content,
-                }
-            )
+       raise NotImplementedError()
 
     async def start(self):
         pass
@@ -231,4 +201,4 @@ class LogService(InfrastructureService):
         pass
 
     def _create_logger(self):
-        raise NotImplementedError()
+        return self.log_backend(self.config).get_logger()
